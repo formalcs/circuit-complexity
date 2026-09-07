@@ -1,7 +1,6 @@
-# cslib
+# Introduction
 
-`cslib` is a repository for Lean formalizations in theoretical computer
-science.
+This is a repository for Lean formalizations in circuit complexity.
 
 ## Formalizations
 
