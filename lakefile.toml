@@ -25,4 +25,4 @@ rev = "main"
 [[lean_lib]]
 name = "circuit-complexity"
 srcDir = "."
-roots = ["Formulas", "Circuits", "DecisionTrees", "Lists", "Parity"]
+roots = ["ACC", "Formulas", "Circuits", "DecisionTrees", "Lists", "Parity"]
