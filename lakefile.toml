@@ -5,6 +5,7 @@ defaultTargets = [
   "Parity.HastadParityProof.General",
   "Parity.CircuitParityLowerBoundsOneThird",
   "Parity.CircuitParityLowerBoundsSharp",
+  "ACC.LowerBounds.Smolensky.Circuit",
 ]
 
 [leanOptions]
