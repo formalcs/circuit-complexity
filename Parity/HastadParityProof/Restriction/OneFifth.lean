@@ -194,7 +194,8 @@ lemma exists_good_restriction_reduces_ac0_to_narrow_dnf_of_parameters
         ufiFormulaEval formula.val (assembleInput n live liveBits deadBits) =
         ufiFormulaEval g.val liveBits := by
   exact exists_good_restriction_reduces_ac0_to_narrow_dnf_of_parameters_core
-    (q := 3 / 5) (s := n / 5) hd ht hcount_m h_bot_m h_thresh_m
+    (q := 3 / 5) (s := n / 5) hd ht hcount_m h_bot_m
+    (le_trans (Nat.mul_le_mul_left _ (by nlinarith : 40 * (t + 1) ≤ 20 * t * (t + 1))) h_thresh_m)
     (FaninReduction.roundZeroCalibration_one_fifth n h_five_le_n) formula
 
 /-- Asymptotic one-fifth-live restriction-to-narrow-DNF reduction. -/

@@ -2077,7 +2077,7 @@ lemma exists_round_zero_fanIn_reduced_of_parameters_core
         (h_two_le_t : 2 ≤ t)
         (hcount_m : (((c * n ^ k : ℕ) : ℚ) * q ^ (t + 1) < 1))
         (h_bot_m : c * n ^ k < 2 ^ t)
-        (h_thresh_m : (20 * t) ^ (d - 2) * (20 * t * (t + 1)) ≤ s)
+        (h_thresh_m : (20 * t) ^ (d - 2) * (40 * (t + 1)) ≤ s)
         (cal : FaninReduction.RoundZeroCalibration q n s)
         (formula : LeveledUFIFormulaOfSizePolyNAndDepthD n c k d) :
   ∃ (live₀ : List Nat)
@@ -2086,7 +2086,7 @@ lemma exists_round_zero_fanIn_reduced_of_parameters_core
     (dead₀ : List Bool)
     (c' k' : Nat)
     (state : SwitchingRoundState live₀.length c' k' d t)
-    (_h_thresh : (20 * t) ^ (d - 2) * (20 * t * (t + 1)) ≤ live₀.length),
+    (_h_thresh : (20 * t) ^ (d - 2) * (40 * (t + 1)) ≤ live₀.length),
     ∀ (liveBits : List Bool), liveBits.length = live₀.length →
       ufiFormulaEval formula.val (assembleInput n live₀ liveBits dead₀) =
       ufiFormulaEval state.circuit.val liveBits := by
@@ -2150,7 +2150,7 @@ lemma exists_round_zero_fanIn_reduced_of_parameters_core
     rw [hc]; exact hcard
   have hpos_len : 0 < live₀.length := by
     rw [h_live_len]
-    have : 0 < (20 * t) ^ (d - 2) * (20 * t * (t + 1)) := by positivity
+    have : 0 < (20 * t) ^ (d - 2) * (40 * (t + 1)) := by positivity
     omega
   -- Rank function for the live coordinates (default `i` keeps it injective
   -- on the whole `asgn = none` set, including out-of-range indices).
@@ -2333,7 +2333,7 @@ lemma exists_round_zero_fanIn_reduced_of_parameters_core
       (lt_of_le_of_lt (switchingGateBudget_le_ufiFormulaCircuitSize d formula.val)
         (lt_of_le_of_lt formula.property.2.2.1 h_bot_m))
   -- Iterated-switching threshold.
-  have h_c_thresh : (20 * t) ^ (d - 2) * (20 * t * (t + 1)) ≤ live₀.length := by
+  have h_c_thresh : (20 * t) ^ (d - 2) * (40 * (t + 1)) ≤ live₀.length := by
     rw [h_live_len]; exact h_thresh_m
   -- Package the result.
   exact ⟨live₀, h_live_lt, h_live_nodup, dead₀,
@@ -2352,7 +2352,7 @@ lemma exists_good_restriction_reduces_ac0_to_narrow_dnf_of_parameters_core
       (ht : 2 ≤ t)
       (hcount_m : (((c * n ^ k : ℕ) : ℚ) * q ^ (t + 1) < 1))
       (h_bot_m : c * n ^ k < 2 ^ t)
-      (h_thresh_m : (20 * t) ^ (d - 2) * (20 * t * (t + 1)) ≤ s)
+      (h_thresh_m : (20 * t) ^ (d - 2) * (40 * (t + 1)) ≤ s)
       (cal : FaninReduction.RoundZeroCalibration q n s)
       (formula : LeveledUFIFormulaOfSizePolyNAndDepthD n c k d) :
   ∃ (live : List Nat)
@@ -2376,7 +2376,7 @@ lemma exists_good_restriction_reduces_ac0_to_narrow_dnf_of_parameters_core
   -- Iterated switching collapse from the fan-in-reduced round state.
   obtain ⟨live₁, h_live₁_lt, h_live₁_nodup, h_live₁_big,
           dead₁, w, hw, g, hgw, h_eval₁⟩ :=
-    exists_iterated_switching_depth_collapse hd state ht h_thresh
+    exists_iterated_switching_depth_collapse_sharp hd state ht h_thresh
   -- Compose the two restrictions into one on the original `n`.
   obtain ⟨live, h_live_lt, h_live_nodup, deadBits,
           h_card, h_len_eq, h_assemble⟩ :=

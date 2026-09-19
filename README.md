@@ -8,9 +8,13 @@ It contains a complete formalization of PARITY circuit lower bounds and the Razb
 ### PARITY lower and upper bounds
 
 The current circuit complexity development formalizes lower and upper bounds
-for the Boolean PARITY function. Its main lower-bound result proves that PARITY
-is not computed by polynomial-size, constant-depth families of
-unbounded-fan-in circuits. The proof follows Håstad's switching-lemma argument,
+for the Boolean PARITY function. For every fixed computation depth `d ≥ 2`,
+it proves that PARITY requires size `exp(Ω_d(n^(1/(d-1))))`, matching the
+classical upper bound up to constants in the exponent. This holds for both
+formulas and circuits with shared gates and implies that PARITY is not
+computed by polynomial-size, constant-depth families of unbounded-fan-in
+circuits. The quantitative bound uses a one-third-live round-zero restriction.
+The proof follows Håstad's switching-lemma argument,
 including the finite counting argument, repeated depth reduction,
 normalization of general formulas, and the transfer from shared-gate circuits
 to formulas. The development also constructs a polynomial-size,
@@ -23,6 +27,9 @@ check its lower bounds and bounded-fan-in upper-bound construction, run:
 lake build
 lake build Formulas.Parity
 ```
+
+The default build includes the quantitative circuit theorem. To check that
+endpoint explicitly, run `lake build Parity.CircuitParityLowerBoundsSharp`.
 
 ### PARITY lower bounds reading guide
 
@@ -126,7 +133,7 @@ The restriction and depth-reduction pipeline is then organized into:
   for choosing one restriction that is good for all bottom gates;
 - [`Parity/HastadParityProof/DepthReduction.lean`](Parity/HastadParityProof/DepthReduction.lean)
   for `SwitchingRoundState`, one-round depth reduction, composition of
-  restrictions, and `exists_iterated_switching_depth_collapse`; and
+  restrictions, and `exists_iterated_switching_depth_collapse_sharp`; and
 - [`Parity/HastadParityProof/Restriction.lean`](Parity/HastadParityProof/Restriction.lean)
   for rekeying live variables, the special round-zero fan-in reduction, and the
   density-independent capstone.
@@ -136,9 +143,16 @@ The one-third-live calibration used by the strongest public bound is in
 
 ### 5. Finish the formula lower bound
 
+[`Parity/HastadParityProof/LowerBounds/Sharp.lean`](Parity/HastadParityProof/LowerBounds/Sharp.lean)
+derives the exponent `1/(d-1)` using the one-third-live calibration. Its main
+formula-level endpoint is `formula_parity_size_lower_bound_root_sharp`.
+The terminal depth-two step requires only the linear live-variable reserve
+`40 * (t + 1)`. Together with `d - 2` nonterminal rounds, this gives the
+reserve `(20 * t)^(d - 2) * (40 * (t + 1))` and saves one power of the
+switching cutoff.
+
 [`Parity/HastadParityProof/LowerBounds/OneThird.lean`](Parity/HastadParityProof/LowerBounds/OneThird.lean)
-derives the explicit root-exponential lower bound. Its main formula-level
-endpoint is `formula_parity_size_lower_bound_root_one_third`.
+provides the earlier quantitative bound and supporting one-third arithmetic.
 
 [`Parity/HastadParityProof/General.lean`](Parity/HastadParityProof/General.lean)
 then exposes two eventual lower bounds for general formulas:
@@ -158,10 +172,34 @@ The shared-gate circuit model and its well-formedness conditions are defined in
 
 [`Parity/CircuitParityLowerBounds.lean`](Parity/CircuitParityLowerBounds.lean)
 proves that unfolding a well-formed circuit preserves evaluation while
-controlling formula depth, size, and input indices. Finally,
+controlling formula depth, size, and input indices.
+[`Parity/NormalizeNullary.lean`](Parity/NormalizeNullary.lean) replaces nullary
+AND/OR gates with depth-zero constants, preserving evaluation and node count.
+This lets the circuit-to-formula transfer preserve computation depth.
+
+[`Parity/CircuitParityLowerBoundsSharp.lean`](Parity/CircuitParityLowerBoundsSharp.lean)
+proves the quantitative circuit theorem in the namespace
+`Circuits.CircuitParityLowerBounds`:
+
+```lean
+theorem circuit_parity_size_lower_bound_root_sharp (d : Nat) (hd : 2 ≤ d) :
+    ∃ N, ∀ n, N ≤ n →
+      ∀ (circuit : Circuit),
+        circuit.inputWidth = n →
+        circuit.depth ≤ d + 1 →
+        CircuitComputesParity n circuit →
+        2 ^ (Nat.nthRoot (d - 1) (n / (360 * 40 ^ (d - 2))) /
+            (8 * (d + 3))) ≤ circuit.circuitSize
+```
+
+Here `d` counts computation layers. `Circuit.depth` also counts the output
+wire, which accounts for `d + 1` in the hypothesis. The integer root and
+quotient give an explicit bound of the form `exp(Ω_d(n^(1/(d-1))))` for
+sufficiently large `n`.
+
 [`Parity/CircuitParityLowerBoundsOneThird.lean`](Parity/CircuitParityLowerBoundsOneThird.lean)
-proves `circuit_parity_size_lower_bound_root_one_third` and the repository's
-main lower-bound theorem:
+retains `circuit_parity_size_lower_bound_root_one_third` and the qualitative
+family-level corollary:
 
 ```lean
 theorem parity_does_not_have_ac0_circuits :
@@ -184,8 +222,10 @@ family.
 
 For a conceptual overview, read `Core.lean`, `ParityProperties.lean`,
 `ParityDNF.lean`, the final theorem of `SwitchingLemma.lean`,
-`LowerBounds/OneThird.lean`, `General.lean`, and
-`CircuitParityLowerBoundsOneThird.lean`, in that order.
+`LowerBounds/Sharp.lean`, `NormalizeNullary.lean`, and
+`CircuitParityLowerBoundsSharp.lean`, in that order. For the qualitative
+family-level corollaries, continue with `General.lean` and
+`CircuitParityLowerBoundsOneThird.lean`.
 
 To audit the switching lemma, read `RandomRestriction.lean`,
 `SwitchingLemmaCanonicalDT.lean`, `SwitchingLemmaCore.lean`,
@@ -193,7 +233,8 @@ To audit the switching lemma, read `RandomRestriction.lean`,
 
 To audit the engineering needed for arbitrary circuits, follow the modules in
 `Parity/Leveling/`, then `DepthReduction.lean`, `Restriction.lean`,
-`CircuitToFormula.lean`, and `CircuitParityLowerBounds.lean`.
+`CircuitToFormula.lean`, `CircuitParityLowerBounds.lean`,
+`NormalizeNullary.lean`, and `CircuitParityLowerBoundsSharp.lean`.
 
 ## Smolensky ACC Lower-Bound Formalization Reading Guide
 

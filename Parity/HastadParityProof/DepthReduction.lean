@@ -2326,12 +2326,12 @@ lemma exists_composed_collapse
 /-- Iterate switching from a complete round state.  The remaining-round
     threshold is kept separate: unlike the fields of `SwitchingRoundState`,
     it decreases according to how many rounds are still to be performed. -/
-lemma exists_iterated_switching_depth_collapse
+lemma exists_iterated_switching_depth_collapse_sharp
       {c k d n t : Nat}
       (hd : 1 ≤ d)
       (state : SwitchingRoundState n c k d t)
       (ht : 2 ≤ t)
-      (h_thresh : (20 * t) ^ (d - 2) * (20 * t * (t + 1)) ≤ n) :
+      (h_thresh : (20 * t) ^ (d - 2) * (40 * (t + 1)) ≤ n) :
   ∃ (live : List Nat)
     (_h_live_lt : ∀ v ∈ live, v < n)
     (_h_live_nodup : live.Nodup)
@@ -2349,7 +2349,9 @@ lemma exists_iterated_switching_depth_collapse
   · subst d
     obtain ⟨live, h_live_lt, h_live_nodup, h_live_big,
             deadBits, w, hw, g, hgw, heval⟩ :=
-      exists_depth_one_collapse state.circuit t ht (by simpa using h_thresh)
+      exists_depth_one_collapse_of_three_le state.circuit (by
+        have h : 40 * (t + 1) ≤ n := by simpa using h_thresh
+        omega)
     exact ⟨live, h_live_lt, h_live_nodup, h_live_big,
       deadBits, w, hw, g, hgw, heval⟩
   -- For every remaining depth, start the induction at depth two.  This makes
@@ -2365,21 +2367,14 @@ lemma exists_iterated_switching_depth_collapse
   induction d, hd_two using Nat.le_induction with
   | base =>
     intro c k n state h_thresh
-    -- At overall depth two, the reserve is exactly `20t(t+1)`; no uniform
-    -- `n ↦ n/(20t)` switching round is spent.
-    have h_thresh_full : 20 * t * (t + 1) ≤ n := by
-      simpa using h_thresh
-    -- The depth-two circuit is its own sole extracted bottom, so the
-    -- maintained bottom-fan-in invariant bounds its root fan-in by `t`.
+    -- The terminal step requires a linear reserve in the cutoff.
+    have h_thresh_full : 40 * (t + 1) ≤ n := by simpa using h_thresh
     have h_node_t : ufiBottomFanIn state.circuit.val ≤ t := by
       have hmem : state.circuit.val ∈
           (extractBottomLayer 2 0 state.circuit.val).1 :=
         extractBottomLayer_two_self state.circuit.val
       exact state.bottom_fan_in state.circuit.val hmem
-    have h_depth_two_threshold : 20 * (t + 1) < n := by
-      have hstep : 20 * (t + 1) < 20 * t * (t + 1) := by
-        exact (Nat.mul_lt_mul_right (show 0 < t + 1 by omega)).mpr (by omega)
-      exact Nat.lt_of_lt_of_le hstep h_thresh_full
+    have h_depth_two_threshold : 20 * (t + 1) < n := by omega
     obtain ⟨live, h_live_lt, h_live_nodup, h_live_big,
             deadBits, w, hw, g, hgw, heval⟩ :=
       exists_depth_two_collapse state.circuit state.circuit.property.1
@@ -2395,16 +2390,18 @@ lemma exists_iterated_switching_depth_collapse
       have h_inputs_bound : ufiLargestInput circuit.val < n := circuit.property.1
       have h_cf : IsConstantFree circuit.val := state.constant_free
       have h_clean : IsCleanFormula circuit.val := state.clean
-      -- Per-round threshold `20·t·(t+1) ≤ n` from the iterated one
-      -- (the leading `(20t)^(d-1)` factor is at least one).
+      -- Every nonterminal step still has its quadratic reserve: at
+      -- least one factor `20*t` remains before the linear terminal reserve.
       have h_twenty_mul_t_pos : 0 < 20 * t := by omega
       have h_thr_round : 20 * t * (t + 1) ≤ n := by
-        have hfac : 1 ≤ (20 * t) ^ ((d + 1) - 2) :=
-          Nat.one_le_pow _ _ h_twenty_mul_t_pos
-        calc 20 * t * (t + 1)
-            = 1 * (20 * t * (t + 1)) := by ring
-          _ ≤ (20 * t) ^ ((d + 1) - 2) * (20 * t * (t + 1)) :=
-              Nat.mul_le_mul_right _ hfac
+        have hfac : 20 * t ≤ (20 * t) ^ ((d + 1) - 2) := by
+          calc
+            20 * t = (20 * t) ^ 1 := by simp
+            _ ≤ (20 * t) ^ ((d + 1) - 2) :=
+              Nat.pow_le_pow_right (by omega) (by omega)
+        calc
+          20 * t * (t + 1) ≤ (20 * t) ^ ((d + 1) - 2) * (40 * (t + 1)) := by
+            exact Nat.mul_le_mul hfac (by omega)
           _ ≤ n := h_thresh
       by_cases h_input : ∃ i b, circuit.val = UnboundedFanInFormula.inputGate i b
       · obtain ⟨i, b, hval⟩ := h_input
@@ -2512,16 +2509,16 @@ lemma exists_iterated_switching_depth_collapse
       -- The iterated threshold survives one round: feeding `live₁`
       -- (whose length is ≥ ⌊n/(20t)⌋) the remaining `(20t)^(d-2)`
       -- budget still fits.
-      have h_thr_ih : (20 * t) ^ (d - 2) * (20 * t * (t + 1)) ≤ live₁.length := by
-        have hsurv : (20 * t) ^ (d - 2) * (20 * t * (t + 1)) ≤ n / (20 * t) := by
+      have h_thr_ih : (20 * t) ^ (d - 2) * (40 * (t + 1)) ≤ live₁.length := by
+        have hsurv : (20 * t) ^ (d - 2) * (40 * (t + 1)) ≤ n / (20 * t) := by
           rw [Nat.le_div_iff_mul_le h_twenty_mul_t_pos]
           have hpow :
               (20 * t) ^ (d - 2) * (20 * t) =
                 (20 * t) ^ ((d + 1) - 2) := by
             rw [show (d + 1) - 2 = (d - 2) + 1 by omega, pow_succ]
-          calc (20 * t) ^ (d - 2) * (20 * t * (t + 1)) * (20 * t)
-              = ((20 * t) ^ (d - 2) * (20 * t)) * (20 * t * (t + 1)) := by ring
-            _ = (20 * t) ^ ((d + 1) - 2) * (20 * t * (t + 1)) := by rw [hpow]
+          calc (20 * t) ^ (d - 2) * (40 * (t + 1)) * (20 * t)
+              = ((20 * t) ^ (d - 2) * (20 * t)) * (40 * (t + 1)) := by ring
+            _ = (20 * t) ^ ((d + 1) - 2) * (40 * (t + 1)) := by rw [hpow]
             _ ≤ n := h_thresh
         exact le_trans hsurv h_live'
       -- Apply IH to the peeled circuit on `live₁.length` inputs, carrying
@@ -2557,5 +2554,29 @@ lemma exists_iterated_switching_depth_collapse
         rw [h_eq_step (assembleInput live₁.length live₂ liveBits deadBits₂)
               (length_assembleInput live₁.length live₂ liveBits deadBits₂)]
         exact h_eq_ih liveBits hlb₂
+
+/-- The previous quadratic terminal reserve implies the sharp linear one. -/
+lemma exists_iterated_switching_depth_collapse
+      {c k d n t : Nat}
+      (hd : 1 ≤ d)
+      (state : SwitchingRoundState n c k d t)
+      (ht : 2 ≤ t)
+      (h_thresh : (20 * t) ^ (d - 2) * (20 * t * (t + 1)) ≤ n) :
+  ∃ (live : List Nat)
+    (_h_live_lt : ∀ v ∈ live, v < n)
+    (_h_live_nodup : live.Nodup)
+    (_h_live_big : 2 ≤ live.length)
+    (deadBits : List Bool)
+    (w : Nat) (_hw : w < live.length)
+    (g : UnboundedFanInDNF live.length),
+    dnfWidth g.val ≤ w ∧
+    ∀ (liveBits : List Bool), liveBits.length = live.length →
+      ufiFormulaEval state.circuit.val
+          (assembleInput n live liveBits deadBits) =
+      ufiFormulaEval g.val liveBits := by
+  apply exists_iterated_switching_depth_collapse_sharp hd state ht
+  apply le_trans _ h_thresh
+  apply Nat.mul_le_mul_left
+  nlinarith
 
 end Circuits.HastadParity

@@ -152,12 +152,10 @@ lemma assembleInput_get_at
     Thus the only nonconstant target is the one-literal DNF used for an input
     root; every AND/OR branch has width zero.  This stronger construction
     immediately supplies `w < live.length`. -/
-lemma exists_depth_one_collapse
+lemma exists_depth_one_collapse_of_three_le
       {c k n : Nat}
       (formula : LeveledUFIFormulaOfSizePolyNAndDepthD n c k 1)
-      (t : Nat)
-      (ht : 2 ≤ t)
-      (h_thresh : 20 * t * (t + 1) ≤ n) :
+      (h_three_le_n : 3 ≤ n) :
   ∃ (live : List Nat)
     (_h_live_lt : ∀ v ∈ live, v < n)
     (_h_live_nodup : live.Nodup)
@@ -170,10 +168,6 @@ lemma exists_depth_one_collapse
       ufiFormulaEval formula.val
           (assembleInput n live liveBits deadBits) =
       ufiFormulaEval g.val liveBits := by
-  -- Since `t ≥ 2`, the left side of the threshold is already positive and
-  -- much larger than three.  This is the sole arithmetic fact about the
-  -- switching parameters needed by the structural base case.
-  have h_three_le_n : 3 ≤ n := by nlinarith
   -- Unpack the formula subtype.  Of its fields, this proof uses the input
   -- bound, the depth bound, and strict leveling; size and positivity play no
   -- role at depth one.
@@ -682,6 +676,27 @@ lemma exists_depth_one_collapse
           simp [ufiFormulaEval]
 
 /-! ### Sub-lemmas for `exists_switching_depth_reduction` -/
+
+/-- Compatibility wrapper for the structural depth-one collapse. -/
+lemma exists_depth_one_collapse
+      {c k n : Nat}
+      (formula : LeveledUFIFormulaOfSizePolyNAndDepthD n c k 1)
+      (t : Nat)
+      (ht : 2 ≤ t)
+      (h_thresh : 20 * t * (t + 1) ≤ n) :
+  ∃ (live : List Nat)
+    (_h_live_lt : ∀ v ∈ live, v < n)
+    (_h_live_nodup : live.Nodup)
+    (_h_live_big : 2 ≤ live.length)
+    (deadBits : List Bool)
+    (w : Nat) (_hw : w < live.length)
+    (g : UnboundedFanInDNF live.length),
+    dnfWidth g.val ≤ w ∧
+    ∀ (liveBits : List Bool), liveBits.length = live.length →
+      ufiFormulaEval formula.val
+          (assembleInput n live liveBits deadBits) =
+      ufiFormulaEval g.val liveBits := by
+  exact exists_depth_one_collapse_of_three_le formula (by nlinarith)
 
 /-- Convert the `AssignedRandomRestriction` produced by
     `exists_switching_lemma_pigeonhole_list` into the `(live, deadBits)` shape consumed by
